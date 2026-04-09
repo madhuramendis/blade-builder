@@ -4,8 +4,7 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
-  // Uncomment and set to your GitHub repo name before deploying:
-  // basePath: "/your-repo-name",
+  basePath: "/blade-builder",
 };
 
 export default nextConfig;
