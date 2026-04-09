@@ -33,7 +33,7 @@ export interface PageBlade {
 export const BLADE_DEFS = {
 
   "platform-hero": {
-    label: "Platform hero",
+    label: "Hero section",
     description: "Dark full-width hero with headline + CTAs",
     icon: "H",
     iconBg: "#1a1f36",
