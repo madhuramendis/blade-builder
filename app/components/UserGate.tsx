@@ -2,17 +2,15 @@
 import { useState } from "react";
 import { MAX_USERS } from "@/app/lib/useUsers";
 
-import { getScriptUrl } from "@/app/lib/sheetsStorage";
-
 interface Props {
   users:        string[];
   onLogin:      (name: string) => void;
   onCreate:     (name: string) => string | null;
   onOpenSetup:  () => void;
+  sheetsConnected?: boolean;
 }
 
-export function UserGate({ users, onLogin, onCreate, onOpenSetup }: Props) {
-  const sheetsConnected = !!getScriptUrl();
+export function UserGate({ users, onLogin, onCreate, onOpenSetup, sheetsConnected = false }: Props) {
   const [newName, setNewName] = useState("");
   const [error, setError]    = useState<string | null>(null);
 

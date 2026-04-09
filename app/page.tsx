@@ -9,29 +9,30 @@ import PageBuilder from "@/app/components/PageBuilder";
 type AppState = "loading" | "setup" | "gate" | "builder";
 
 export default function Home() {
-  const [appState, setAppState] = useState<AppState>("loading");
+  const [appState, setAppState]     = useState<AppState>("loading");
+  const [scriptUrl, setScriptUrl]   = useState<string | null>(null);
   const { users, currentUser, ready, login, logout, createUser } = useUsers();
 
-  // Determine initial screen
+  // All localStorage reads must happen inside useEffect (no SSR access)
   useEffect(() => {
-    if (appState !== "loading") return;
-    // Check if setup has been completed (script URL set, or explicitly skipped)
     const setupDone = localStorage.getItem("blade-builder-setup-done");
-    if (!setupDone) { setAppState("setup"); return; }
-    // Let useUsers finish loading
-  }, [appState]);
+    setScriptUrl(getScriptUrl());
+    if (!setupDone) {
+      setAppState("setup");
+    }
+    // else: wait for useUsers to become ready (second effect handles it)
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
     if (appState === "loading") {
-      const setupDone = localStorage.getItem("blade-builder-setup-done");
-      if (!setupDone) return; // still on setup
       setAppState(currentUser ? "builder" : "gate");
     }
   }, [ready, currentUser, appState]);
 
   const handleSetupDone = () => {
     localStorage.setItem("blade-builder-setup-done", "1");
+    setScriptUrl(getScriptUrl());
     setAppState(currentUser ? "builder" : "gate");
   };
 
@@ -53,10 +54,17 @@ export default function Home() {
 
   const openSetup = () => setAppState("setup");
 
-  if (appState === "loading") return null;
+  // Show a minimal spinner until JS hydrates and effects fire
+  if (appState === "loading") {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "#1a1f36", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "#ff7300", fontSize: 14, fontFamily: "system-ui, sans-serif", letterSpacing: 1 }}>Loading…</div>
+      </div>
+    );
+  }
 
   if (appState === "setup") {
-    return <SetupScreen existingUrl={getScriptUrl()} onDone={handleSetupDone} />;
+    return <SetupScreen existingUrl={scriptUrl} onDone={handleSetupDone} />;
   }
 
   if (appState === "gate" || !currentUser) {
@@ -66,6 +74,7 @@ export default function Home() {
         onLogin={handleLogin}
         onCreate={handleCreate}
         onOpenSetup={openSetup}
+        sheetsConnected={!!scriptUrl}
       />
     );
   }
