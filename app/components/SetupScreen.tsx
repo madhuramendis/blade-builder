@@ -131,7 +131,6 @@ export function SetupScreen({ onDone, existingUrl }: Props) {
       <div className="setup-card">
 
         <div className="user-gate-logo">
-          <div className="logo-mark">W2</div>
           <span className="logo-text">Blade Builder</span>
           <span className="logo-tag">PMM</span>
         </div>

@@ -82,7 +82,6 @@ export default function PageBuilder({ userId, onSwitch, onOpenSetup }: Props) {
       <header className="topbar">
         <div className="topbar-left">
           <div className="logo">
-            <div className="logo-mark">W2</div>
             <span className="logo-text">Blade Builder</span>
             <span className="logo-tag">PMM</span>
           </div>
