@@ -1,5 +1,9 @@
 "use client";
 import { useState } from "react";
+import {
+  Box, Typography, TextField, Button, Alert, Chip,
+  Stepper, Step, StepLabel, StepContent, Divider,
+} from "@wso2/oxygen-ui";
 import { saveScriptUrl, testScriptUrl, clearScriptUrl } from "@/app/lib/sheetsStorage";
 
 const APPS_SCRIPT = `// ═══════════════════════════════════════════════════════
@@ -27,7 +31,7 @@ function getSheet() {
 function findRow(sheet, key) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === key) return i + 1; // 1-indexed
+    if (data[i][0] === key) return i + 1;
   }
   return -1;
 }
@@ -35,16 +39,12 @@ function findRow(sheet, key) {
 function doGet(e) {
   const key = e.parameter.key;
   if (key === "__ping__") {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: true }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
   }
   const sheet = getSheet();
   const row = findRow(sheet, key);
   const value = row > 0 ? sheet.getRange(row, 2).getValue() : null;
-  return ContentService
-    .createTextOutput(JSON.stringify({ value }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({ value })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
@@ -53,170 +53,126 @@ function doPost(e) {
     const { action, key, value } = body;
     const sheet = getSheet();
     const row = findRow(sheet, key);
-
     if (action === "set") {
-      if (row > 0) {
-        sheet.getRange(row, 2).setValue(value);
-        sheet.getRange(row, 3).setValue(new Date().toISOString());
-      } else {
-        sheet.appendRow([key, value, new Date().toISOString()]);
-      }
+      if (row > 0) { sheet.getRange(row, 2).setValue(value); sheet.getRange(row, 3).setValue(new Date().toISOString()); }
+      else { sheet.appendRow([key, value, new Date().toISOString()]); }
     } else if (action === "delete" && row > 0) {
       sheet.deleteRow(row);
     }
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: true }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }`;
 
 interface Props {
-  onDone:      () => void;
   existingUrl: string | null;
+  onDone:      () => void;
 }
 
-export function SetupScreen({ onDone, existingUrl }: Props) {
-  const [url, setUrl]         = useState(existingUrl ?? "");
-  const [status, setStatus]   = useState<"idle" | "testing" | "ok" | "error">("idle");
-  const [errMsg, setErrMsg]   = useState("");
-  const [copied, setCopied]   = useState(false);
+export function SetupScreen({ existingUrl, onDone }: Props) {
+  const [url, setUrl]       = useState(existingUrl ?? "");
+  const [status, setStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [errMsg, setErrMsg] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const copyScript = async () => {
-    try {
-      await navigator.clipboard.writeText(APPS_SCRIPT);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      const el = document.createElement("textarea");
-      el.value = APPS_SCRIPT;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
+    try { await navigator.clipboard.writeText(APPS_SCRIPT); }
+    catch { const el = Object.assign(document.createElement("textarea"), { value: APPS_SCRIPT }); document.body.appendChild(el); el.select(); document.execCommand("copy"); document.body.removeChild(el); }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   const handleTest = async () => {
     if (!url.trim()) return;
     setStatus("testing");
-    setErrMsg("");
     const err = await testScriptUrl(url.trim());
-    if (err) {
-      setStatus("error");
-      setErrMsg(err);
-    } else {
-      setStatus("ok");
-      saveScriptUrl(url.trim());
-    }
+    if (err) { setStatus("error"); setErrMsg(err); }
+    else { setStatus("ok"); saveScriptUrl(url.trim()); }
   };
 
-  const handleSkip = () => {
-    clearScriptUrl();
-    onDone();
-  };
-
-  const handleContinue = () => {
-    saveScriptUrl(url.trim());
-    onDone();
-  };
+  const steps = [
+    {
+      label: "Open your Google Sheet",
+      content: <>Open a Google Sheet (or create a new one), then go to <strong>Extensions → Apps Script</strong>.</>,
+    },
+    {
+      label: "Paste the script",
+      content: (
+        <>
+          <Typography variant="body2" sx={{ mb: 1 }}>Replace everything in <code>Code.gs</code> with the script below, then save.</Typography>
+          <Button variant="outlined" size="small" onClick={copyScript} fullWidth>
+            {copied ? "✓ Copied!" : "Copy Apps Script"}
+          </Button>
+        </>
+      ),
+    },
+    {
+      label: "Deploy as Web App",
+      content: <>Click <strong>Deploy → New deployment</strong>. Type: <em>Web App</em>. Execute as: <em>Me</em>. Access: <em>Anyone</em>. Authorise and copy the URL.</>,
+    },
+    {
+      label: "Paste the Web App URL",
+      content: (
+        <>
+          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="https://script.google.com/macros/s/…/exec"
+              value={url}
+              onChange={e => { setUrl(e.target.value); setStatus("idle"); }}
+            />
+            <Button variant="contained" size="small" disabled={!url.trim() || status === "testing"} onClick={handleTest}
+              sx={{ whiteSpace: "nowrap" }}>
+              {status === "testing" ? "Testing…" : "Test"}
+            </Button>
+          </Box>
+          {status === "ok"    && <Alert severity="success" sx={{ mt: 1 }}>Connected — Sheets is working</Alert>}
+          {status === "error" && <Alert severity="error" sx={{ mt: 1 }}>{errMsg}</Alert>}
+        </>
+      ),
+    },
+  ];
 
   return (
-    <div className="user-gate-overlay">
-      <div className="setup-card">
+    <Box sx={{
+      position: "fixed", inset: 0, bgcolor: "#1a1f36",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      p: 3, overflowY: "auto",
+    }}>
+      <Box sx={{ bgcolor: "background.paper", borderRadius: 3, p: 5, width: "100%", maxWidth: 520, boxShadow: 24 }}>
+        <Typography variant="h5" fontWeight={800} color="#1a1f36" gutterBottom>
+          Connect Google Sheets
+          <Chip label="PMM" size="small" sx={{ ml: 1, fontSize: 10, height: 20, bgcolor: "#f0f2f5", color: "#6b7a99" }} />
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Save all users, pages, versions and revisions to a shared Google Sheet — accessible from any device.
+        </Typography>
 
-        <div className="user-gate-logo">
-          <span className="logo-text">Blade Builder</span>
-          <span className="logo-tag">PMM</span>
-        </div>
+        <Stepper orientation="vertical">
+          {steps.map(s => (
+            <Step key={s.label} active>
+              <StepLabel>{s.label}</StepLabel>
+              <StepContent>
+                <Typography variant="body2" color="text.secondary" component="div">{s.content}</Typography>
+              </StepContent>
+            </Step>
+          ))}
+        </Stepper>
 
-        <h2 className="user-gate-title">Connect Google Sheets</h2>
-        <p className="user-gate-sub">
-          Saves all users, pages, versions and revisions to a shared Google Sheet — accessible from any device.
-        </p>
+        <Divider sx={{ my: 3 }} />
 
-        {/* Step 1 */}
-        <div className="setup-step">
-          <div className="setup-step-num">1</div>
-          <div className="setup-step-body">
-            <div className="setup-step-title">Open your Google Sheet</div>
-            <p className="setup-step-desc">
-              Create a new Google Sheet (or use an existing one), then go to{" "}
-              <strong>Extensions → Apps Script</strong>.
-            </p>
-          </div>
-        </div>
-
-        {/* Step 2 */}
-        <div className="setup-step">
-          <div className="setup-step-num">2</div>
-          <div className="setup-step-body">
-            <div className="setup-step-title">Paste the script</div>
-            <p className="setup-step-desc">
-              Replace everything in <code>Code.gs</code> with the script below, then save.
-            </p>
-            <button className="btn btn-secondary btn-sm setup-copy-btn" onClick={copyScript}>
-              {copied ? "✓ Copied!" : "Copy Apps Script"}
-            </button>
-          </div>
-        </div>
-
-        {/* Step 3 */}
-        <div className="setup-step">
-          <div className="setup-step-num">3</div>
-          <div className="setup-step-body">
-            <div className="setup-step-title">Deploy as a Web App</div>
-            <p className="setup-step-desc">
-              Click <strong>Deploy → New deployment</strong>. Set type to <em>Web App</em>,
-              execute as <em>Me</em>, access to <em>Anyone</em>. Authorise and copy the Web App URL.
-            </p>
-          </div>
-        </div>
-
-        {/* Step 4 — URL input */}
-        <div className="setup-step">
-          <div className="setup-step-num">4</div>
-          <div className="setup-step-body">
-            <div className="setup-step-title">Paste the Web App URL here</div>
-            <div className="setup-url-row">
-              <input
-                className="field-input"
-                placeholder="https://script.google.com/macros/s/…/exec"
-                value={url}
-                onChange={e => { setUrl(e.target.value); setStatus("idle"); }}
-              />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleTest}
-                disabled={!url.trim() || status === "testing"}
-              >
-                {status === "testing" ? "Testing…" : "Test"}
-              </button>
-            </div>
-            {status === "ok"    && <div className="setup-ok">✓ Connected — Sheets is working</div>}
-            {status === "error" && <div className="setup-err">✗ {errMsg}</div>}
-          </div>
-        </div>
-
-        <div className="setup-actions">
-          <button className="btn btn-ghost-dark" onClick={handleSkip}>
+        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Button variant="text" color="inherit" onClick={() => { clearScriptUrl(); onDone(); }} sx={{ color: "text.secondary" }}>
             Skip — use local storage only
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={!url.trim()}
-            onClick={handleContinue}
-          >
+          </Button>
+          <Button variant="contained" disabled={!url.trim()} onClick={() => { saveScriptUrl(url.trim()); onDone(); }}
+            sx={{ bgcolor: "#ff7300", "&:hover": { bgcolor: "#e56500" } }}>
             Continue →
-          </button>
-        </div>
-
-      </div>
-    </div>
+          </Button>
+        </Box>
+      </Box>
+    </Box>
   );
 }

@@ -1,5 +1,9 @@
 "use client";
 import { useState } from "react";
+import {
+  Box, Typography, TextField, Button, IconButton,
+  Tooltip, Divider, Chip,
+} from "@wso2/oxygen-ui";
 import { Snapshot } from "@/app/lib/usePageBuilder";
 
 interface Props {
@@ -14,33 +18,41 @@ interface Props {
 function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1)   return "just now";
-  if (mins < 60)  return `${mins}m ago`;
+  if (mins < 1)  return "just now";
+  if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24)   return `${hrs}h ago`;
+  if (hrs < 24)  return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
 function SnapRow({ snap, onRestore, onDelete }: {
-  snap: Snapshot;
+  snap:      Snapshot;
   onRestore: () => void;
   onDelete?: () => void;
 }) {
   return (
-    <div className="snapshot-row">
-      <div className="snapshot-info">
-        <div className="snapshot-name">{snap.name}</div>
-        <div className="snapshot-meta">
-          {relTime(snap.savedAt)} &middot; {snap.blades.length} blade{snap.blades.length !== 1 ? "s" : ""}
-        </div>
-      </div>
-      <div className="snapshot-actions">
-        <button className="sr-btn" title="Restore this snapshot" onClick={onRestore}>↩</button>
-        {onDelete && (
-          <button className="sr-btn danger" title="Delete" onClick={onDelete}>×</button>
-        )}
-      </div>
-    </div>
+    <Box
+      sx={{
+        display: "flex", alignItems: "center", gap: 1,
+        p: 1.25, borderRadius: 2, border: "1px solid", borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2" fontWeight={600} noWrap>{snap.name}</Typography>
+        <Typography variant="caption" color="text.secondary">
+          {relTime(snap.savedAt)} · {snap.blades.length} blade{snap.blades.length !== 1 ? "s" : ""}
+        </Typography>
+      </Box>
+      <Tooltip title="Restore">
+        <IconButton size="small" onClick={onRestore}>↩</IconButton>
+      </Tooltip>
+      {onDelete && (
+        <Tooltip title="Delete">
+          <IconButton size="small" color="error" onClick={onDelete}>×</IconButton>
+        </Tooltip>
+      )}
+    </Box>
   );
 }
 
@@ -60,58 +72,63 @@ export function VersionsPanel({ versions, revisions, onSaveVersion, onLoadSnapsh
   };
 
   return (
-    <div className="tab-content">
+    <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
 
-      {/* ── Save version ── */}
-      <div className="section-label">Save version</div>
-      <div className="version-save-row">
-        <input
-          className="field-input version-name-input"
+      {/* Save */}
+      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 2 }}>Save version</Typography>
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <TextField
+          size="small"
           placeholder="Version name…"
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSave()}
+          sx={{ flex: 1 }}
         />
-        <button className="btn btn-primary btn-sm" onClick={handleSave}>Save</button>
-      </div>
+        <Button variant="contained" size="small" onClick={handleSave}>Save</Button>
+      </Box>
 
-      {/* ── Named versions ── */}
-      <div className="section-label versions-section-label">
-        Saved versions <span className="count-badge">{versions.length}</span>
-      </div>
+      <Divider />
+
+      {/* Named versions */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 2 }}>Saved versions</Typography>
+        <Chip label={versions.length} size="small" />
+      </Box>
       {versions.length === 0 ? (
-        <div className="empty-state" style={{ padding: "10px 0" }}>
-          No versions saved yet. Type a name above and hit Save.
-        </div>
+        <Typography variant="caption" color="text.secondary">No versions saved yet.</Typography>
       ) : (
-        versions.map(v => (
-          <SnapRow
-            key={v.id}
-            snap={v}
-            onRestore={() => handleRestore(v)}
-            onDelete={() => { onDeleteVersion(v.id); onToast("Version deleted", "warn"); }}
-          />
-        ))
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+          {versions.map(v => (
+            <SnapRow
+              key={v.id}
+              snap={v}
+              onRestore={() => handleRestore(v)}
+              onDelete={() => { onDeleteVersion(v.id); onToast("Version deleted", "warn"); }}
+            />
+          ))}
+        </Box>
       )}
 
-      {/* ── Auto-revisions ── */}
-      <div className="section-label versions-section-label">
-        Auto-revisions <span className="count-badge">{revisions.length}</span>
-      </div>
+      <Divider />
+
+      {/* Auto-revisions */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 2 }}>Auto-revisions</Typography>
+        <Chip label={revisions.length} size="small" />
+      </Box>
       {revisions.length === 0 ? (
-        <div className="empty-state" style={{ padding: "10px 0" }}>
-          Revisions are saved automatically when you add, remove, or reorder blades.
-        </div>
+        <Typography variant="caption" color="text.secondary">
+          Auto-saved on add, remove, or reorder.
+        </Typography>
       ) : (
-        revisions.map(r => (
-          <SnapRow
-            key={r.id}
-            snap={r}
-            onRestore={() => handleRestore(r)}
-          />
-        ))
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+          {revisions.map(r => (
+            <SnapRow key={r.id} snap={r} onRestore={() => handleRestore(r)} />
+          ))}
+        </Box>
       )}
 
-    </div>
+    </Box>
   );
 }

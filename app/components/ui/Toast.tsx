@@ -1,12 +1,12 @@
-// components/ui/Toast.tsx
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { Alert, Snackbar } from "@wso2/oxygen-ui";
 
 export type ToastType = "default" | "warn" | "error";
 
 interface ToastState {
-  msg: string;
-  type: ToastType;
+  msg:     string;
+  type:    ToastType;
   visible: boolean;
 }
 
@@ -17,21 +17,26 @@ export function useToast() {
     setToast({ msg, type, visible: true });
   }, []);
 
-  useEffect(() => {
-    if (!toast.visible) return;
-    const t = setTimeout(() => setToast((p) => ({ ...p, visible: false })), 2800);
-    return () => clearTimeout(t);
-  }, [toast.visible, toast.msg]);
+  const closeToast = useCallback(() => {
+    setToast(p => ({ ...p, visible: false }));
+  }, []);
 
-  return { toast, showToast };
+  return { toast, showToast, closeToast };
 }
 
-export function Toast({ toast }: { toast: ToastState }) {
+const severityMap = { default: "success", warn: "warning", error: "error" } as const;
+
+export function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
   return (
-    <div
-      className={`toast toast-${toast.type}${toast.visible ? " show" : ""}`}
+    <Snackbar
+      open={toast.visible}
+      autoHideDuration={2800}
+      onClose={onClose}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
     >
-      {toast.msg}
-    </div>
+      <Alert onClose={onClose} severity={severityMap[toast.type]} variant="filled" sx={{ width: "100%" }}>
+        {toast.msg}
+      </Alert>
+    </Snackbar>
   );
 }

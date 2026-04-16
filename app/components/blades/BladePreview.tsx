@@ -110,8 +110,13 @@ function FeatureDeepDive({ d }: { d: D }) {
   );
   const imgCol = (
     <div className="col-md-6">
-      <div className="wso2-split-img" style={{ background: d.imgbg || "#f5f7fa" }}>
-        <span className="wso2-split-img-label">{d.imglabel || "Screenshot"}</span>
+      <div className="wso2-split-img" style={{ background: d.imgbg || "#f5f7fa", flexDirection: "column", gap: 12 }}>
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.3 }}>
+          <rect x="4" y="10" width="48" height="36" rx="4" stroke="#8896ab" strokeWidth="2.5"/>
+          <circle cx="17" cy="22" r="4" stroke="#8896ab" strokeWidth="2"/>
+          <path d="M4 38l12-10 8 8 8-6 12 10" stroke="#8896ab" strokeWidth="2" strokeLinejoin="round"/>
+        </svg>
+        <span className="wso2-split-img-label">{d.imglabel || "Screenshot / diagram"}</span>
       </div>
     </div>
   );
